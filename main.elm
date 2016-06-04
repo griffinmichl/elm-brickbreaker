@@ -18,13 +18,13 @@ main =
 -- Model
 
 (gameWidth, gameHeight) = (500, 500)
-(ballSize) = (5)
 
 type alias Ball =
   { x : Float
   , y : Float
   , vx : Float
   , vy : Float
+  , r : Float
   }
 
 type alias Brick =
@@ -41,10 +41,26 @@ type alias Model =
   , bid : Int
   }
 
+generateBricks : Int -> Int -> List Brick
+generateBricks num numPerRow = 
+  let
+    width = (gameWidth // numPerRow)
+    height = width // 2
+    createBrick i =
+      Brick
+        (toFloat ((i % numPerRow) * width))
+        (toFloat ((i // numPerRow) * height))
+        (toFloat height)
+        (toFloat width)
+        i
+  in
+    List.map createBrick [0..num-1]
+
+
 defaultModel : Model
 defaultModel =
-  { ball = Ball 0 0 12 12
-  , bricks = [ Brick 50 50 10 10 0 ]
+  { ball = Ball (gameWidth / 2) gameHeight 50 -50 10
+  , bricks = generateBricks 20 5 
   , bid = 0
   }
 
@@ -78,9 +94,9 @@ isCollision ball brick =
     distanceX = abs (ball.x - (brick.x + brick.width / 2))
     distanceY = abs (ball.y - (brick.y + brick.height / 2))
   in
-    if distanceX > (brick.width / 2 + ballSize) then
+    if distanceX > (brick.width / 2 + ball.r) then
       False
-    else if distanceY > (brick.height / 2 + ballSize) then
+    else if distanceY > (brick.height / 2 + ball.r) then
       False
     else if distanceX <= (brick.width / 2) then
       True
@@ -90,14 +106,14 @@ isCollision ball brick =
       (
         (distanceX - brick.width / 2) ^ 2 +
         (distanceY - brick.height / 2) ^ 2
-      ) <= ballSize ^ 2
+      ) <= ball.r ^ 2
 
 updateBall : Time -> Ball -> Ball
 updateBall dt ball =
   physicsUpdate dt
     { ball |
-      vx = getDirection ball.vx (near ballSize 0 ball.x) (near ballSize 100 ball.x),
-      vy = getDirection ball.vy (near ballSize 0 ball.y) (near ballSize 100 ball.y)
+      vx = getDirection ball.vx (near ball.r 0 ball.x) (near ball.r gameWidth ball.x),
+      vy = getDirection ball.vy (near ball.r 0 ball.y) (near ball.r gameWidth ball.y)
     }
 
 near : Float -> Float -> Float -> Bool
@@ -133,9 +149,9 @@ subscriptions model =
 view : Model -> Html Msg
 view { ball, bricks } =
   svg
-    [ width (toString gameWidth), height (toString gameHeight), viewBox "0 0 100 100" ]
+    [ width (toString gameWidth), height (toString gameHeight) ]
     ([ circle
-      [ cx (toString ball.x), cy (toString ball.y), r (toString ballSize) ]
+      [ cx (toString ball.x), cy (toString ball.y), r (toString ball.r) ]
       []
     ] ++ List.map renderBrick bricks)
 
