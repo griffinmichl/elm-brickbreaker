@@ -5,6 +5,8 @@ import Svg.Attributes exposing (..)
 import AnimationFrame
 import Time exposing (..)
 
+import Debug exposing (log)
+
 main =
   App.program
     { init = init
@@ -41,8 +43,8 @@ type alias Model =
 
 defaultModel : Model
 defaultModel =
-  { ball = Ball 0 0 24 12
-  , bricks = []
+  { ball = Ball 0 0 12 12
+  , bricks = [ Brick 50 50 10 10 0 ]
   , bid = 0
   }
 
@@ -53,19 +55,42 @@ init =
 
 -- Update
 
-type Msg =
-  Tick Time
+type Msg
+  = Tick Time
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Tick delta ->
       let
-        { ball } = model
+        { ball, bricks } = model
         newBall = updateBall delta ball
+        newBricks = removeCollisions ball bricks
       in
-        ({ model | ball = newBall }, Cmd.none)
+        ({ model | ball = newBall, bricks = newBricks }, Cmd.none)
 
+removeCollisions : Ball -> List Brick -> List Brick
+removeCollisions ball bricks = List.filter (not << isCollision ball) bricks
+
+isCollision : Ball -> Brick -> Bool
+isCollision ball brick =
+  let
+    distanceX = abs (ball.x - (brick.x + brick.width / 2))
+    distanceY = abs (ball.y - (brick.y + brick.height / 2))
+  in
+    if distanceX > (brick.width / 2 + ballSize) then
+      False
+    else if distanceY > (brick.height / 2 + ballSize) then
+      False
+    else if distanceX <= (brick.width / 2) then
+      True
+    else if distanceY <= (brick.height / 2) then
+      True
+    else
+      (
+        (distanceX - brick.width / 2) ^ 2 +
+        (distanceY - brick.height / 2) ^ 2
+      ) <= ballSize ^ 2
 
 updateBall : Time -> Ball -> Ball
 updateBall dt ball =
@@ -106,11 +131,21 @@ subscriptions model =
 -- View
 
 view : Model -> Html Msg
-view { ball } =
+view { ball, bricks } =
   svg
     [ width (toString gameWidth), height (toString gameHeight), viewBox "0 0 100 100" ]
-    [ circle [ cx (toString ball.x), cy (toString ball.y), r (toString ballSize) ] [] ]
+    ([ circle
+      [ cx (toString ball.x), cy (toString ball.y), r (toString ballSize) ]
+      []
+    ] ++ List.map renderBrick bricks)
 
-
-
+renderBrick : Brick -> Html Msg
+renderBrick brick =
+  rect
+    [ x (toString brick.x)
+    , y (toString brick.y)
+    , height (toString brick.height)
+    , width (toString brick.width)
+    ]
+    []
 
