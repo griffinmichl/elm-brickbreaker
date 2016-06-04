@@ -5,8 +5,6 @@ import Svg.Attributes exposing (..)
 import AnimationFrame
 import Time exposing (..)
 
-import Debug exposing (log)
-
 main =
   App.program
     { init = init
@@ -59,7 +57,7 @@ generateBricks num numPerRow =
 
 defaultModel : Model
 defaultModel =
-  { ball = Ball (gameWidth / 2) gameHeight 50 -50 10
+  { ball = Ball (gameWidth / 2) (gameHeight - 11) 100 -75 10
   , bricks = generateBricks 20 5 
   , bid = 0
   }
@@ -80,16 +78,38 @@ update msg model =
     Tick delta ->
       let
         { ball, bricks } = model
-        newBall = updateBall delta ball
+        newBall = updateBall delta ball bricks
         newBricks = removeCollisions ball bricks
       in
         ({ model | ball = newBall, bricks = newBricks }, Cmd.none)
 
 removeCollisions : Ball -> List Brick -> List Brick
-removeCollisions ball bricks = List.filter (not << isCollision ball) bricks
+removeCollisions ball bricks = List.filter (not << isBrickCollision ball) bricks
 
-isCollision : Ball -> Brick -> Bool
-isCollision ball brick =
+isHorizontalCollision : Ball -> Brick -> Bool
+isHorizontalCollision ball brick =
+  let
+    distanceX = abs (ball.x - (brick.x + brick.width / 2))
+  in
+    distanceX <= (brick.width / 2 + ball.r) && distanceX < (brick.width / 2)
+
+isVerticalCollision : Ball -> Brick -> Bool
+isVerticalCollision ball brick =
+  let
+    distanceY = abs (ball.y - (brick.y + brick.height / 2))
+  in
+    distanceY <= (brick.height / 2 + ball.r) && distanceY <= (brick.height / 2)
+    
+isDiagCollision : Ball -> Brick -> Bool
+isDiagCollision ball brick =
+  let
+    distanceX = abs (ball.x - (brick.x + brick.width / 2))
+    distanceY = abs (ball.y - (brick.y + brick.height / 2))
+  in
+    ((distanceX - brick.width / 2) ^ 2 + (distanceY - brick.height / 2) ^ 2) <= ball.r ^ 2
+
+isBrickCollision : Ball -> Brick -> Bool
+isBrickCollision ball brick =
   let
     distanceX = abs (ball.x - (brick.x + brick.width / 2))
     distanceY = abs (ball.y - (brick.y + brick.height / 2))
@@ -108,13 +128,30 @@ isCollision ball brick =
         (distanceY - brick.height / 2) ^ 2
       ) <= ball.r ^ 2
 
-updateBall : Time -> Ball -> Ball
-updateBall dt ball =
-  physicsUpdate dt
-    { ball |
-      vx = getDirection ball.vx (near ball.r 0 ball.x) (near ball.r gameWidth ball.x),
-      vy = getDirection ball.vy (near ball.r 0 ball.y) (near ball.r gameWidth ball.y)
-    }
+
+updateBall : Time -> Ball -> List Brick -> Ball
+updateBall dt ball bricks =
+  physicsUpdate dt <| updateDirection ball bricks
+
+anyVerticalCollision : Ball -> List Brick -> Bool
+anyVerticalCollision ball bricks =
+  List.any
+    (\brick -> isVerticalCollision ball brick || isDiagCollision ball brick)
+    <| List.filter (isBrickCollision ball) bricks
+
+anyHorizontalCollision : Ball -> List Brick -> Bool
+anyHorizontalCollision ball bricks =
+  List.any
+    (\brick -> isHorizontalCollision ball brick || isDiagCollision ball brick)
+    <| List.filter (isBrickCollision ball) bricks
+
+
+updateDirection : Ball -> List Brick -> Ball
+updateDirection ball bricks =
+  { ball |
+    vx = getDirection ball.vx (near ball.r 0 ball.x || near ball.r gameWidth ball.x || anyVerticalCollision ball bricks)
+  , vy = getDirection ball.vy (near ball.r 0 ball.y || near ball.r gameHeight ball.y || anyHorizontalCollision ball bricks)
+  }
 
 near : Float -> Float -> Float -> Bool
 near dist from to =
@@ -128,13 +165,10 @@ physicsUpdate dt obj =
     y = obj.y + obj.vy * dt
   }
 
-
-getDirection : Float -> Bool -> Bool -> Float
-getDirection v lowerCollision upperCollision =
-  if lowerCollision then
-    abs v
-  else if upperCollision then
-    -(abs v)
+getDirection : Float -> Bool -> Float
+getDirection v collision =
+  if collision then
+    -v
   else
     v
 
