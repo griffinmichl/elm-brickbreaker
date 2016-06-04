@@ -39,6 +39,8 @@ type alias Paddle =
   , y : Float
   , height : Float
   , width : Float
+  , vx : Float
+  , dir : Int
   }
 
 type alias Model = 
@@ -69,7 +71,7 @@ defaultModel =
   { ball = Ball (gameWidth / 2) (gameHeight - 11) 100 -75 10
   , bricks = generateBricks 20 5 
   , bid = 0
-  , paddle = Paddle (gameWidth / 2) (gameHeight - 5) 5 100
+  , paddle = Paddle (gameWidth / 2) (gameHeight - 5) 5 100 5 0
   }
 
 
@@ -81,17 +83,34 @@ init =
 
 type Msg
   = Tick Time
+  | Direction Int
+  | Static
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    Static ->
+      (model, Cmd.none)
+
+    Direction dir ->
+      let
+        { paddle } = model
+      in
+        ({ model | paddle = { paddle | dir = dir } }, Cmd.none)
+
     Tick delta ->
       let
-        { ball, bricks } = model
+        { ball, bricks, paddle } = model
         newBall = updateBall delta ball bricks
         newBricks = removeCollisions ball bricks
+        newPaddle = updatePaddle paddle
       in
-        ({ model | ball = newBall, bricks = newBricks }, Cmd.none)
+        ({ model | ball = newBall, bricks = newBricks, paddle = newPaddle }, Cmd.none)
+
+
+updatePaddle : Paddle -> Paddle
+updatePaddle paddle =
+  { paddle | x = paddle.x + (toFloat paddle.dir) * paddle.vx }
 
 removeCollisions : Ball -> List Brick -> List Brick
 removeCollisions ball bricks = List.filter (not << isBrickCollision ball) bricks
@@ -186,7 +205,26 @@ getDirection v collision =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  AnimationFrame.diffs (Tick << inSeconds)
+  Sub.batch
+    [ AnimationFrame.diffs (Tick << inSeconds)
+    , Keyboard.downs <| processKey True
+    , Keyboard.ups <| processKey False
+    ]
+
+processKey : Bool -> Keyboard.KeyCode -> Msg
+processKey bool keycode =
+  case (bool, keycode) of
+    (False, _) ->
+      Direction 0
+
+    (_, 37) ->
+      Direction 1
+
+    (_, 39) ->
+      Direction -1
+
+    _ -> Static
+
 
 -- View
 
