@@ -101,7 +101,7 @@ update msg model =
     Tick delta ->
       let
         { ball, bricks, paddle } = model
-        newBall = updateBall delta ball bricks
+        newBall = updateBall delta ball paddle bricks
         newBricks = removeCollisions ball bricks
         newPaddle = updatePaddle paddle
       in
@@ -158,9 +158,9 @@ isBrickCollision ball brick =
       ) <= ball.r ^ 2
 
 
-updateBall : Time -> Ball -> List Brick -> Ball
-updateBall dt ball bricks =
-  physicsUpdate dt <| updateDirection ball bricks
+updateBall : Time -> Ball -> Paddle -> List Brick -> Ball
+updateBall dt ball paddle bricks =
+  physicsUpdate dt <| updateDirection ball paddle bricks
 
 anyVerticalCollision : Ball -> List Brick -> Bool
 anyVerticalCollision ball bricks =
@@ -175,12 +175,13 @@ anyHorizontalCollision ball bricks =
     <| List.filter (isBrickCollision ball) bricks
 
 
-updateDirection : Ball -> List Brick -> Ball
-updateDirection ball bricks =
+updateDirection : Ball -> Paddle -> List Brick -> Ball
+updateDirection ball paddle bricks =
   { ball |
     vx = getDirection ball.vx (near ball.r 0 ball.x || near ball.r gameWidth ball.x || anyVerticalCollision ball bricks)
-  , vy = getDirection ball.vy (near ball.r 0 ball.y || near ball.r gameHeight ball.y || anyHorizontalCollision ball bricks)
+  , vy = getDirection ball.vy ((near ball.r gameHeight ball.y && near (paddle.width / 2) ball.x (paddle.x + paddle.width / 2 )) || near ball.r 0 ball.y || anyHorizontalCollision ball bricks)
   }
+
 
 near : Float -> Float -> Float -> Bool
 near dist from to =
