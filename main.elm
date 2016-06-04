@@ -4,6 +4,7 @@ import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import AnimationFrame
 import Time exposing (..)
+import Keyboard
 
 main =
   App.program
@@ -33,10 +34,18 @@ type alias Brick =
   , id : Int
   }
 
+type alias Paddle =
+  { x : Float
+  , y : Float
+  , height : Float
+  , width : Float
+  }
+
 type alias Model = 
   { ball : Ball
   , bricks : List Brick
   , bid : Int
+  , paddle : Paddle
   }
 
 generateBricks : Int -> Int -> List Brick
@@ -60,6 +69,7 @@ defaultModel =
   { ball = Ball (gameWidth / 2) (gameHeight - 11) 100 -75 10
   , bricks = generateBricks 20 5 
   , bid = 0
+  , paddle = Paddle (gameWidth / 2) (gameHeight - 5) 5 100
   }
 
 
@@ -181,13 +191,26 @@ subscriptions model =
 -- View
 
 view : Model -> Html Msg
-view { ball, bricks } =
+view { ball, bricks, paddle } =
   svg
     [ width (toString gameWidth), height (toString gameHeight) ]
-    ([ circle
-      [ cx (toString ball.x), cy (toString ball.y), r (toString ball.r) ]
-      []
-    ] ++ List.map renderBrick bricks)
+    (
+      [ circle
+          [ cx (toString ball.x), cy (toString ball.y), r (toString ball.r) ]
+          []
+      , renderPaddle paddle
+      ] ++ List.map renderBrick bricks
+    )
+
+renderPaddle : Paddle -> Html Msg
+renderPaddle paddle =
+  rect
+    [ x (toString paddle.x)
+    , y (toString paddle.y)
+    , height (toString paddle.height)
+    , width (toString paddle.width)
+    ]
+    []
 
 renderBrick : Brick -> Html Msg
 renderBrick brick =
