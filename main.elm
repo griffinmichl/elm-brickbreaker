@@ -2,6 +2,7 @@ import Html exposing (Html, text)
 import Html.App as App
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
+import AnimationFrame
 import Time exposing (..)
 
 main =
@@ -29,7 +30,7 @@ type alias Model =
 
 defaultModel : Model
 defaultModel =
-  { ball = Ball 0 0 6 3 }
+  { ball = Ball 0 0 12 6 }
 
 
 init : (Model, Cmd Msg)
@@ -39,25 +40,25 @@ init =
 -- Update
 
 type Msg =
-  Tick
+  Tick Time
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Tick ->
+    Tick delta ->
       let
         { ball } = model
-        newBall = updateBall ball
+        newBall = updateBall delta ball
       in
         ({ model | ball = newBall }, Cmd.none)
 
 
-updateBall : Ball -> Ball
-updateBall ball =
-  physicsUpdate 1
+updateBall : Time -> Ball -> Ball
+updateBall dt ball =
+  physicsUpdate dt
     { ball |
-      vx = getDirection ball.vx (near 5 0 ball.x) (near 5 100 ball.x),
-      vy = getDirection ball.vy (near 5 0 ball.y) (near 5 100 ball.y)
+      vx = getDirection ball.vx (near ballSize 0 ball.x) (near ballSize 100 ball.x),
+      vy = getDirection ball.vy (near ballSize 0 ball.y) (near ballSize 100 ball.y)
     }
 
 near : Float -> Float -> Float -> Bool
@@ -86,7 +87,7 @@ getDirection v lowerCollision upperCollision =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Time.every second (\_ -> Tick)
+  AnimationFrame.diffs (Tick << inSeconds)
 
 -- View
 
