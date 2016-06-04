@@ -25,12 +25,26 @@ type alias Ball =
   , vy : Float
   }
 
+type alias Brick =
+  { x : Float
+  , y : Float
+  , height : Float
+  , width : Float
+  , id : Int
+  }
+
 type alias Model = 
-  { ball : Ball }
+  { ball : Ball
+  , bricks : List Brick
+  , bid : Int
+  }
 
 defaultModel : Model
 defaultModel =
-  { ball = Ball 0 0 12 6 }
+  { ball = Ball 0 0 24 12
+  , bricks = []
+  , bid = 0
+  }
 
 
 init : (Model, Cmd Msg)
@@ -66,7 +80,7 @@ near dist from to =
   to >= from - dist && to <= from + dist
 
 
-physicsUpdate : Float -> Ball -> Ball
+physicsUpdate : Time -> Ball -> Ball
 physicsUpdate dt obj =
   { obj |
     x = obj.x + obj.vx * dt,
