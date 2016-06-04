@@ -45,7 +45,7 @@ generateBricks : Int -> Int -> List Brick
 generateBricks num numPerRow = 
   let
     width = (gameWidth // numPerRow)
-    height = width // 2
+    height = width // 3
     createBrick i =
       Brick
         (toFloat ((i % numPerRow) * width))
@@ -162,6 +162,8 @@ renderBrick brick =
     , y (toString brick.y)
     , height (toString brick.height)
     , width (toString brick.width)
+    , fill "green"
+    , stroke "black"
     ]
     []
 
