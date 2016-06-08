@@ -1,10 +1,13 @@
-import Html exposing (Html, text)
+import Html exposing (Html, div, span, text)
 import Html.App as App
+import Html.Attributes exposing (style)
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import AnimationFrame
 import Time exposing (..)
 import Keyboard
+
+import Debug
 
 main =
   App.program
@@ -43,11 +46,16 @@ type alias Paddle =
   , dir : Int
   }
 
+type alias Game =
+  { lives : Int
+  }
+
 type alias Model = 
   { ball : Ball
   , bricks : List Brick
   , bid : Int
   , paddle : Paddle
+  , game : Game
   }
 
 generateBricks : Int -> Int -> List Brick
@@ -65,13 +73,17 @@ generateBricks num numPerRow =
   in
     List.map createBrick [0..num-1]
 
+defaultBall : Ball
+defaultBall = Ball (gameWidth / 2) (gameHeight - 11) 100 -75 10
+
 
 defaultModel : Model
 defaultModel =
-  { ball = Ball (gameWidth / 2) (gameHeight - 11) 100 -75 10
+  { ball = defaultBall
   , bricks = generateBricks 20 5 
   , bid = 0
   , paddle = Paddle (gameWidth / 2) (gameHeight - 5) 5 100 5 0
+  , game = Game 3
   }
 
 
@@ -100,13 +112,28 @@ update msg model =
 
     Tick delta ->
       let
-        { ball, bricks, paddle } = model
+        { ball, bricks, paddle, game } = model
         newBall = updateBall delta ball paddle bricks
         newBricks = removeCollisions ball bricks
         newPaddle = updatePaddle paddle
+        newGame = updateGame game newPaddle newBall
       in
-        ({ model | ball = newBall, bricks = newBricks, paddle = newPaddle }, Cmd.none)
+        if newGame.lives == 0 then
+           (defaultModel, Cmd.none)
+        else
+          ({ model |
+             ball = if newGame.lives /= game.lives then defaultBall else newBall,
+             bricks = newBricks,
+             paddle = newPaddle,
+             game = newGame
+           }, Cmd.none)
 
+updateGame : Game -> Paddle -> Ball -> Game
+updateGame game paddle ball =
+  if isOutOfBounds ball paddle then
+    { game | lives = game.lives - 1 }
+  else
+    game
 
 updatePaddle : Paddle -> Paddle
 updatePaddle paddle =
@@ -114,6 +141,12 @@ updatePaddle paddle =
 
 removeCollisions : Ball -> List Brick -> List Brick
 removeCollisions ball bricks = List.filter (not << isBrickCollision ball) bricks
+
+isOutOfBounds : Ball -> Paddle -> Bool
+isOutOfBounds ball paddle = 
+     near ball.r gameHeight ball.y
+  && (not <| near (paddle.width / 2) ball.x (paddle.x + paddle.width / 2 ))
+
 
 isHorizontalCollision : Ball -> Brick -> Bool
 isHorizontalCollision ball brick =
@@ -157,10 +190,21 @@ isBrickCollision ball brick =
         (distanceY - brick.height / 2) ^ 2
       ) <= ball.r ^ 2
 
+isPaddleCollision : Ball -> Paddle -> Bool
+isPaddleCollision ball paddle = 
+     near ball.r gameHeight ball.y
+  && near (paddle.width / 2) ball.x (paddle.x + paddle.width / 2 )
 
 updateBall : Time -> Ball -> Paddle -> List Brick -> Ball
 updateBall dt ball paddle bricks =
-  physicsUpdate dt <| updateDirection ball paddle bricks
+  physicsUpdate dt <| updateSpeed paddle <| updateDirection ball paddle bricks
+
+updateSpeed : Paddle -> Ball -> Ball
+updateSpeed paddle ball = 
+  if isPaddleCollision ball paddle then
+    { ball | vx = ball.vx + ball.vx / 10, vy = ball.vy + ball.vy / 10 }
+  else
+    ball
 
 anyVerticalCollision : Ball -> List Brick -> Bool
 anyVerticalCollision ball bricks =
@@ -179,7 +223,7 @@ updateDirection : Ball -> Paddle -> List Brick -> Ball
 updateDirection ball paddle bricks =
   { ball |
     vx = getDirection ball.vx (near ball.r 0 ball.x || near ball.r gameWidth ball.x || anyVerticalCollision ball bricks)
-  , vy = getDirection ball.vy ((near ball.r gameHeight ball.y && near (paddle.width / 2) ball.x (paddle.x + paddle.width / 2 )) || near ball.r 0 ball.y || anyHorizontalCollision ball bricks)
+  , vy = getDirection ball.vy (isPaddleCollision ball paddle || near ball.r 0 ball.y || anyHorizontalCollision ball bricks)
   }
 
 
@@ -230,18 +274,24 @@ processKey bool keycode =
 -- View
 
 view : Model -> Html Msg
-view { ball, bricks, paddle } =
-  svg
-    [ Svg.Attributes.style "outline: thin solid black"
-    , width (toString gameWidth), height (toString gameHeight)
+view { ball, bricks, paddle, game } =
+  div
+    []
+    [ svg
+        [ Svg.Attributes.style "outline: thin solid black"
+        , width (toString gameWidth), height (toString gameHeight)
+        ]
+        (
+          [ circle
+              [ cx (toString ball.x), cy (toString ball.y), r (toString ball.r) ]
+              []
+          , renderPaddle paddle
+          ] ++ List.map renderBrick bricks
+        ),
+      span
+        [ Html.Attributes.style [("vertical-align", "top")] ]
+        [ Html.text ("Lives: " ++ toString game.lives) ]
     ]
-    (
-      [ circle
-          [ cx (toString ball.x), cy (toString ball.y), r (toString ball.r) ]
-          []
-      , renderPaddle paddle
-      ] ++ List.map renderBrick bricks
-    )
 
 renderPaddle : Paddle -> Html Msg
 renderPaddle paddle =
