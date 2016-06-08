@@ -232,7 +232,9 @@ processKey bool keycode =
 view : Model -> Html Msg
 view { ball, bricks, paddle } =
   svg
-    [ width (toString gameWidth), height (toString gameHeight) ]
+    [ Svg.Attributes.style "outline: thin solid black"
+    , width (toString gameWidth), height (toString gameHeight)
+    ]
     (
       [ circle
           [ cx (toString ball.x), cy (toString ball.y), r (toString ball.r) ]
