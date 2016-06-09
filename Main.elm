@@ -276,7 +276,7 @@ processKey bool keycode =
 view : Model -> Html Msg
 view { ball, bricks, paddle, game } =
   div
-    []
+    [ Html.Attributes.style [("padding", "50px")] ]
     [ svg
         [ Svg.Attributes.style "outline: thin solid black"
         , width (toString gameWidth), height (toString gameHeight)
