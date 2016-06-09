@@ -71,7 +71,7 @@ generateBricks num numPerRow =
         (toFloat height)
         (toFloat width)
         i
-        2
+        3
   in
     List.map createBrick [0..num-1]
 
@@ -319,6 +319,14 @@ renderPaddle paddle =
     ]
     []
 
+getBrickColor : Brick -> String
+getBrickColor { health } =
+  case health of
+    1 -> "LightBlue"
+    2 -> "Blue"
+    3 -> "DarkBlue"
+    _ -> "Black"
+
 renderBrick : Brick -> Html Msg
 renderBrick brick =
   rect
@@ -326,7 +334,7 @@ renderBrick brick =
     , y (toString brick.y)
     , height (toString brick.height)
     , width (toString brick.width)
-    , fill "green"
+    , fill <| getBrickColor brick
     , stroke "black"
     ]
     []
