@@ -8264,6 +8264,20 @@ var _elm_lang$svg$Svg_Attributes$additive = _elm_lang$virtual_dom$VirtualDom$att
 var _elm_lang$svg$Svg_Attributes$accumulate = _elm_lang$virtual_dom$VirtualDom$attribute('accumulate');
 var _elm_lang$svg$Svg_Attributes$accelerate = _elm_lang$virtual_dom$VirtualDom$attribute('accelerate');
 var _elm_lang$svg$Svg_Attributes$accentHeight = _elm_lang$virtual_dom$VirtualDom$attribute('accent-height');
+var _user$project$Main$getBrickColor = function (_p0) {
+	var _p1 = _p0;
+	var _p2 = _p1.health;
+	switch (_p2) {
+		case 1:
+			return 'LightBlue';
+		case 2:
+			return 'Blue';
+		case 3:
+			return 'DarkBlue';
+		default:
+			return 'Black';
+	}
+};
 var _user$project$Main$renderBrick = function (brick) {
 	return A2(
 		_elm_lang$svg$Svg$rect,
@@ -8277,7 +8291,8 @@ var _user$project$Main$renderBrick = function (brick) {
 				_elm_lang$core$Basics$toString(brick.height)),
 				_elm_lang$svg$Svg_Attributes$width(
 				_elm_lang$core$Basics$toString(brick.width)),
-				_elm_lang$svg$Svg_Attributes$fill('green'),
+				_elm_lang$svg$Svg_Attributes$fill(
+				_user$project$Main$getBrickColor(brick)),
 				_elm_lang$svg$Svg_Attributes$stroke('black')
 			]),
 		_elm_lang$core$Native_List.fromArray(
@@ -8364,15 +8379,34 @@ var _user$project$Main$anyHorizontalCollision = F2(
 				_user$project$Main$isBrickCollision(ball),
 				bricks));
 	});
-var _user$project$Main$removeCollisions = F2(
+var _user$project$Main$removeDestroyed = F2(
 	function (ball, bricks) {
 		return A2(
 			_elm_lang$core$List$filter,
-			function (_p0) {
-				return _elm_lang$core$Basics$not(
-					A2(_user$project$Main$isBrickCollision, ball, _p0));
+			function (brick) {
+				return _elm_lang$core$Native_Utils.cmp(brick.health, 0) > 0;
 			},
 			bricks);
+	});
+var _user$project$Main$updateHealth = F2(
+	function (ball, bricks) {
+		var update = F2(
+			function (b, brick) {
+				return A2(_user$project$Main$isBrickCollision, b, brick) ? _elm_lang$core$Native_Utils.update(
+					brick,
+					{health: brick.health - 1}) : brick;
+			});
+		return A2(
+			_elm_lang$core$List$map,
+			update(ball),
+			bricks);
+	});
+var _user$project$Main$updateBricks = F2(
+	function (ball, bricks) {
+		return A2(
+			_user$project$Main$removeDestroyed,
+			ball,
+			A2(_user$project$Main$updateHealth, ball, bricks));
 	});
 var _user$project$Main$updatePaddle = function (paddle) {
 	return _elm_lang$core$Native_Utils.update(
@@ -8381,9 +8415,9 @@ var _user$project$Main$updatePaddle = function (paddle) {
 			x: paddle.x + (_elm_lang$core$Basics$toFloat(paddle.dir) * paddle.vx)
 		});
 };
-var _user$project$Main$_p1 = {ctor: '_Tuple2', _0: 500, _1: 500};
-var _user$project$Main$gameWidth = _user$project$Main$_p1._0;
-var _user$project$Main$gameHeight = _user$project$Main$_p1._1;
+var _user$project$Main$_p3 = {ctor: '_Tuple2', _0: 500, _1: 500};
+var _user$project$Main$gameWidth = _user$project$Main$_p3._0;
+var _user$project$Main$gameHeight = _user$project$Main$_p3._1;
 var _user$project$Main$isOutOfBounds = F2(
 	function (ball, paddle) {
 		return A3(_user$project$Main$near, ball.r, _user$project$Main$gameHeight, ball.y) && _elm_lang$core$Basics$not(
@@ -8430,9 +8464,9 @@ var _user$project$Main$updateBall = F4(
 				paddle,
 				A3(_user$project$Main$updateDirection, ball, paddle, bricks)));
 	});
-var _user$project$Main$view = function (_p2) {
-	var _p3 = _p2;
-	var _p4 = _p3.ball;
+var _user$project$Main$view = function (_p4) {
+	var _p5 = _p4;
+	var _p6 = _p5.ball;
 	return A2(
 		_elm_lang$html$Html$div,
 		_elm_lang$core$Native_List.fromArray(
@@ -8464,17 +8498,17 @@ var _user$project$Main$view = function (_p2) {
 							_elm_lang$core$Native_List.fromArray(
 								[
 									_elm_lang$svg$Svg_Attributes$cx(
-									_elm_lang$core$Basics$toString(_p4.x)),
+									_elm_lang$core$Basics$toString(_p6.x)),
 									_elm_lang$svg$Svg_Attributes$cy(
-									_elm_lang$core$Basics$toString(_p4.y)),
+									_elm_lang$core$Basics$toString(_p6.y)),
 									_elm_lang$svg$Svg_Attributes$r(
-									_elm_lang$core$Basics$toString(_p4.r))
+									_elm_lang$core$Basics$toString(_p6.r))
 								]),
 							_elm_lang$core$Native_List.fromArray(
 								[])),
-							_user$project$Main$renderPaddle(_p3.paddle)
+							_user$project$Main$renderPaddle(_p5.paddle)
 						]),
-					A2(_elm_lang$core$List$map, _user$project$Main$renderBrick, _p3.bricks))),
+					A2(_elm_lang$core$List$map, _user$project$Main$renderBrick, _p5.bricks))),
 				A2(
 				_elm_lang$html$Html$span,
 				_elm_lang$core$Native_List.fromArray(
@@ -8491,7 +8525,7 @@ var _user$project$Main$view = function (_p2) {
 						A2(
 							_elm_lang$core$Basics_ops['++'],
 							'Lives: ',
-							_elm_lang$core$Basics$toString(_p3.game.lives)))
+							_elm_lang$core$Basics$toString(_p5.game.lives)))
 					]))
 			]));
 };
@@ -8500,23 +8534,24 @@ var _user$project$Main$Ball = F5(
 		return {x: a, y: b, vx: c, vy: d, r: e};
 	});
 var _user$project$Main$defaultBall = A5(_user$project$Main$Ball, _user$project$Main$gameWidth / 2, _user$project$Main$gameHeight - 11, 100, -75, 10);
-var _user$project$Main$Brick = F5(
-	function (a, b, c, d, e) {
-		return {x: a, y: b, height: c, width: d, id: e};
+var _user$project$Main$Brick = F6(
+	function (a, b, c, d, e, f) {
+		return {x: a, y: b, height: c, width: d, id: e, health: f};
 	});
 var _user$project$Main$generateBricks = F2(
 	function (num, numPerRow) {
 		var width = (_user$project$Main$gameWidth / numPerRow) | 0;
 		var height = (width / 3) | 0;
 		var createBrick = function (i) {
-			return A5(
+			return A6(
 				_user$project$Main$Brick,
 				_elm_lang$core$Basics$toFloat(
 					A2(_elm_lang$core$Basics_ops['%'], i, numPerRow) * width),
 				_elm_lang$core$Basics$toFloat(((i / numPerRow) | 0) * height),
 				_elm_lang$core$Basics$toFloat(height),
 				_elm_lang$core$Basics$toFloat(width),
-				i);
+				i,
+				3);
 		};
 		return A2(
 			_elm_lang$core$List$map,
@@ -8540,13 +8575,13 @@ var _user$project$Main$defaultModel = {
 var _user$project$Main$init = {ctor: '_Tuple2', _0: _user$project$Main$defaultModel, _1: _elm_lang$core$Platform_Cmd$none};
 var _user$project$Main$update = F2(
 	function (msg, model) {
-		var _p5 = msg;
-		switch (_p5.ctor) {
+		var _p7 = msg;
+		switch (_p7.ctor) {
 			case 'Static':
 				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'Direction':
-				var _p6 = model;
-				var paddle = _p6.paddle;
+				var _p8 = model;
+				var paddle = _p8.paddle;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -8554,18 +8589,18 @@ var _user$project$Main$update = F2(
 						{
 							paddle: _elm_lang$core$Native_Utils.update(
 								paddle,
-								{dir: _p5._0})
+								{dir: _p7._0})
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			default:
-				var _p7 = model;
-				var ball = _p7.ball;
-				var bricks = _p7.bricks;
-				var paddle = _p7.paddle;
-				var game = _p7.game;
-				var newBall = A4(_user$project$Main$updateBall, _p5._0, ball, paddle, bricks);
-				var newBricks = A2(_user$project$Main$removeCollisions, ball, bricks);
+				var _p9 = model;
+				var ball = _p9.ball;
+				var bricks = _p9.bricks;
+				var paddle = _p9.paddle;
+				var game = _p9.game;
+				var newBall = A4(_user$project$Main$updateBall, _p7._0, ball, paddle, bricks);
+				var newBricks = A2(_user$project$Main$updateBricks, ball, bricks);
 				var newPaddle = _user$project$Main$updatePaddle(paddle);
 				var newGame = A3(_user$project$Main$updateGame, game, newPaddle, newBall);
 				return _elm_lang$core$Native_Utils.eq(newGame.lives, 0) ? {ctor: '_Tuple2', _0: _user$project$Main$defaultModel, _1: _elm_lang$core$Platform_Cmd$none} : {
@@ -8592,34 +8627,34 @@ var _user$project$Main$Direction = function (a) {
 };
 var _user$project$Main$processKey = F2(
 	function (bool, keycode) {
-		var _p8 = {ctor: '_Tuple2', _0: bool, _1: keycode};
-		_v2_3:
+		var _p10 = {ctor: '_Tuple2', _0: bool, _1: keycode};
+		_v4_3:
 		do {
-			_v2_0:
+			_v4_0:
 			do {
-				if (_p8.ctor === '_Tuple2') {
-					switch (_p8._1) {
+				if (_p10.ctor === '_Tuple2') {
+					switch (_p10._1) {
 						case 37:
-							if (_p8._0 === false) {
-								break _v2_0;
+							if (_p10._0 === false) {
+								break _v4_0;
 							} else {
 								return _user$project$Main$Direction(1);
 							}
 						case 39:
-							if (_p8._0 === false) {
-								break _v2_0;
+							if (_p10._0 === false) {
+								break _v4_0;
 							} else {
 								return _user$project$Main$Direction(-1);
 							}
 						default:
-							if (_p8._0 === false) {
-								break _v2_0;
+							if (_p10._0 === false) {
+								break _v4_0;
 							} else {
-								break _v2_3;
+								break _v4_3;
 							}
 					}
 				} else {
-					break _v2_3;
+					break _v4_3;
 				}
 			} while(false);
 			return _user$project$Main$Direction(0);
@@ -8634,9 +8669,9 @@ var _user$project$Main$subscriptions = function (model) {
 		_elm_lang$core$Native_List.fromArray(
 			[
 				_elm_lang$animation_frame$AnimationFrame$diffs(
-				function (_p9) {
+				function (_p11) {
 					return _user$project$Main$Tick(
-						_elm_lang$core$Time$inSeconds(_p9));
+						_elm_lang$core$Time$inSeconds(_p11));
 				}),
 				_elm_lang$keyboard$Keyboard$downs(
 				_user$project$Main$processKey(true)),
