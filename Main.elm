@@ -35,6 +35,7 @@ type alias Brick =
   , height : Float
   , width : Float
   , id : Int
+  , health : Int
   }
 
 type alias Paddle =
@@ -70,6 +71,7 @@ generateBricks num numPerRow =
         (toFloat height)
         (toFloat width)
         i
+        2
   in
     List.map createBrick [0..num-1]
 
@@ -114,7 +116,7 @@ update msg model =
       let
         { ball, bricks, paddle, game } = model
         newBall = updateBall delta ball paddle bricks
-        newBricks = removeCollisions ball bricks
+        newBricks = updateBricks ball bricks
         newPaddle = updatePaddle paddle
         newGame = updateGame game newPaddle newBall
       in
@@ -139,8 +141,22 @@ updatePaddle : Paddle -> Paddle
 updatePaddle paddle =
   { paddle | x = paddle.x + (toFloat paddle.dir) * paddle.vx }
 
-removeCollisions : Ball -> List Brick -> List Brick
-removeCollisions ball bricks = List.filter (not << isBrickCollision ball) bricks
+updateHealth : Ball -> List Brick -> List Brick
+updateHealth ball bricks =
+  let
+    update b brick =
+      if isBrickCollision b brick then
+        { brick | health = brick.health - 1 }
+      else
+        brick
+  in
+    List.map (update ball) bricks
+
+removeDestroyed : Ball -> List Brick -> List Brick
+removeDestroyed ball bricks = List.filter (\brick -> brick.health > 0) bricks
+
+updateBricks : Ball -> List Brick -> List Brick
+updateBricks ball bricks = removeDestroyed ball <| updateHealth ball bricks
 
 isOutOfBounds : Ball -> Paddle -> Bool
 isOutOfBounds ball paddle = 
